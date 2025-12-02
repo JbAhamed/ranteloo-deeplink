@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Open Ranteloo App</title>
+</head>
+<body>
+  <script>
+    // get id from URL
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+
+    // deep link inside your app
+    const appLink = `ranteloo://postdetails/${id}`;
+
+    // app store fallback links
+    const iosStore = "https://apps.apple.com/app/idXXXXXX";
+    const androidStore = "https://play.google.com/store/apps/details?id=com.ranteloo";
+
+    // try opening the app
+    window.location = appLink;
+
+    // fallback to stores
+    setTimeout(() => {
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      window.location.href = isIOS ? iosStore : androidStore;
+    }, 1200);
+  </script>
+</body>
+</html>
