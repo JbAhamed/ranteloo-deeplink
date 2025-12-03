@@ -6,25 +6,34 @@
 </head>
 <body>
   <script>
-    // get id from URL
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
 
-    // deep link inside your app
     const appLink = `ranteloo://postdetails/${id}`;
+    const iosStore = "https://apps.apple.com/app/idXXXXXX";
+    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
 
-    // app store fallback links
-    const iosStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions&hl=en&gl=US";
-    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions&hl=en&gl=US";
+    let fallbackTimeout;
 
-    // try opening the app
-    window.location = appLink;
+    function openApp() {
+      // Try opening the app
+      window.location.href = appLink;
 
-    // fallback to stores
-    setTimeout(() => {
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      window.location.href = isIOS ? iosStore : androidStore;
-    }, 1200);
+      // Start fallback only if user stays on page
+      fallbackTimeout = setTimeout(() => {
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        window.location.href = isIOS ? iosStore : androidStore;
+      }, 1500);
+    }
+
+    // If page becomes hidden → app opened → CANCEL fallback
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        clearTimeout(fallbackTimeout);
+      }
+    });
+
+    openApp();
   </script>
 </body>
 </html>
