@@ -2,38 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Open Ranteloo App</title>
 </head>
 <body>
+  <p id="status">Opening app...</p>
   <script>
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
-
-    const appLink = `ranteloo://postdetails/${id}`;
+    
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    
     const iosStore = "https://apps.apple.com/app/idXXXXXX";
     const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
-
-    let fallbackTimeout;
-
-    function openApp() {
-      // Try opening the app
-      window.location.href = appLink;
-
-      // Start fallback only if user stays on page
-      fallbackTimeout = setTimeout(() => {
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        window.location.href = isIOS ? iosStore : androidStore;
+    
+    if (isAndroid) {
+      // Android Intent URL - browser handles fallback automatically!
+      const intentUrl = `intent://postdetails/${id}#Intent;scheme=ranteloo;package=com.bidyava.solutions;S.browser_fallback_url=${encodeURIComponent(androidStore)};end`;
+      window.location.href = intentUrl;
+      
+    } else if (isIOS) {
+      // iOS fallback approach
+      window.location.href = `ranteloo://postdetails/${id}`;
+      setTimeout(() => {
+        window.location.href = iosStore;
       }, 1500);
+      
+    } else {
+      // Desktop - just show store link
+      document.getElementById("status").innerHTML = `
+        <a href="${androidStore}">Get it on Google Play</a><br>
+        <a href="${iosStore}">Get it on App Store</a>
+      `;
     }
-
-    // If page becomes hidden → app opened → CANCEL fallback
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        clearTimeout(fallbackTimeout);
-      }
-    });
-
-    openApp();
   </script>
 </body>
 </html>
