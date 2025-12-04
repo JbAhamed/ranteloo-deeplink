@@ -3,37 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <title>Open Ranteloo App</title>
+  <meta http-equiv="refresh" content="0; url=https://play.google.com/store/apps/details?id=com.bidyava.solutions">
+  <!-- The meta tag is a final fallback if JS is disabled -->
 </head>
 <body>
   <script>
+    // Prevent the meta tag refresh if JS is enabled
+    window.stop();
+
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
 
     const appLink = `ranteloo://postdetails/${id}`;
-    const iosStore = "https://apps.apple.com/app/idXXXXXX";
+    const iosStore = "https://apps.apple.com/app/idXXXXXX"; // Replace with your App Store ID
     const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
 
     let fallbackTimeout;
 
-    function openApp() {
-      // Try opening the app
-      window.location.href = appLink;
+    function openAppOrFallback() {
+      // Create an iframe to try to open the app
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = appLink;
+      document.body.appendChild(iframe);
 
-      // Start fallback only if user stays on page
+      // Remove the iframe after a short period to clean up the DOM
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 500);
+
+      // Start a short fallback timer
       fallbackTimeout = setTimeout(() => {
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        // If the user is still here, the app didn't open
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         window.location.href = isIOS ? iosStore : androidStore;
-      }, 5000);
+      }, 1000); // 1 second is plenty of time now
     }
 
-    // If page becomes hidden → app opened → CANCEL fallback
-    document.addEventListener("visibilitychange", () => {
+    // If the page is hidden (e.g., app switcher dialog appears), cancel the fallback
+    function cancelFallback() {
+      clearTimeout(fallbackTimeout);
+      window.removeEventListener('pagehide', cancelFallback);
+      document.removeEventListener('visibilitychange', cancelFallback);
+    }
+
+    // Listen for events that indicate the user is leaving the page
+    window.addEventListener('pagehide', cancelFallback);
+    document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        clearTimeout(fallbackTimeout);
+        cancelFallback();
       }
     });
 
-    openApp();
+    openAppOrFallback();
   </script>
 </body>
 </html>
