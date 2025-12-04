@@ -1,61 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Open Ranteloo App</title>
-  <meta http-equiv="refresh" content="0; url=https://play.google.com/store/apps/details?id=com.bidyava.solutions">
-  <!-- The meta tag is a final fallback if JS is disabled -->
+  <meta charset="UTF-8" />
+  <title>Open Ranteloo App</title>
 </head>
 <body>
-  <script>
-    // Prevent the meta tag refresh if JS is enabled
-    window.stop();
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
 
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
+    const appLink = `ranteloo://postdetails/${id}`;
+    // NOTE: Ensure you replace XXXXXX with the actual iOS App ID
+    const iosStore = "https://apps.apple.com/app/idXXXXXX"; 
+    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
 
-    const appLink = `ranteloo://postdetails/${id}`;
-    const iosStore = "https://apps.apple.com/app/idXXXXXX"; // Replace with your App Store ID
-    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
+    // **Significantly reduced timeout for faster, less-likely-to-fire-after-app-open fallback**
+    const FALLBACK_DELAY = 500; // 500 milliseconds (0.5 seconds)
 
-    let fallbackTimeout;
+    let fallbackTimeout;
 
-    function openAppOrFallback() {
-      // Create an iframe to try to open the app
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = appLink;
-      document.body.appendChild(iframe);
+    function openApp() {
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      
+      // 1. Try opening the app
+      window.location.href = appLink;
 
-      // Remove the iframe after a short period to clean up the DOM
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 500);
+      // 2. Set the fallback timer
+      fallbackTimeout = setTimeout(() => {
+        // Check if the page is still visible before navigating
+        if (document.hidden) {
+          // If hidden, assume the app opened and user switched away. 
+          // Don't redirect the now background page.
+          return; 
+        }
+        
+        // If the page is still visible after 500ms, the app likely didn't open.
+        window.location.href = isIOS ? iosStore : androidStore;
+      }, FALLBACK_DELAY);
+    }
 
-      // Start a short fallback timer
-      fallbackTimeout = setTimeout(() => {
-        // If the user is still here, the app didn't open
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        window.location.href = isIOS ? iosStore : androidStore;
-      }, 1000); // 1 second is plenty of time now
-    }
+    // 3. The visibilitychange listener remains crucial for devices 
+    // where the app launch takes longer than FALLBACK_DELAY.
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        clearTimeout(fallbackTimeout);
+      }
+    });
 
-    // If the page is hidden (e.g., app switcher dialog appears), cancel the fallback
-    function cancelFallback() {
-      clearTimeout(fallbackTimeout);
-      window.removeEventListener('pagehide', cancelFallback);
-      document.removeEventListener('visibilitychange', cancelFallback);
-    }
-
-    // Listen for events that indicate the user is leaving the page
-    window.addEventListener('pagehide', cancelFallback);
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        cancelFallback();
-      }
-    });
-
-    openAppOrFallback();
-  </script>
+    openApp();
+  </script>
 </body>
 </html>
