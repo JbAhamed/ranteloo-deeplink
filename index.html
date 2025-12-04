@@ -4,37 +4,50 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Open Ranteloo App</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+    .container { max-width: 320px; }
+    h1 { font-size: 24px; margin-bottom: 10px; }
+    p { font-size: 16px; opacity: 0.9; margin-bottom: 20px; }
+  </style>
 </head>
 <body>
-  <p id="status">Opening app...</p>
+  <div class="container">
+    <h1>Ranteloo</h1>
+    <p>Opening app...</p>
+  </div>
+
   <script>
     const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
+    const id = params.get("id") || "";
     
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isAndroid = /Android/i.test(navigator.userAgent);
-    
-    const iosStore = "https://apps.apple.com/app/idXXXXXX";
-    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     
     if (isAndroid) {
-      // Android Intent URL - browser handles fallback automatically!
-      const intentUrl = `intent://postdetails/${id}#Intent;scheme=ranteloo;package=com.bidyava.solutions;S.browser_fallback_url=${encodeURIComponent(androidStore)};end`;
-      window.location.href = intentUrl;
+      // Intent URL - browser decides IMMEDIATELY if app exists
+      // NO setTimeout, NO race condition
+      const intentUrl = `intent://postdetails/${id}#Intent;scheme=ranteloo;package=com.bidyava.solutions;S.browser_fallback_url=${encodeURIComponent("market://details?id=com.bidyava.solutions")};end`;
+      
+      window.location.replace(intentUrl);
       
     } else if (isIOS) {
-      // iOS fallback approach
+      // iOS - unfortunately still needs timeout approach
       window.location.href = `ranteloo://postdetails/${id}`;
       setTimeout(() => {
-        window.location.href = iosStore;
-      }, 1500);
-      
-    } else {
-      // Desktop - just show store link
-      document.getElementById("status").innerHTML = `
-        <a href="${androidStore}">Get it on Google Play</a><br>
-        <a href="${iosStore}">Get it on App Store</a>
-      `;
+        window.location.href = "https://apps.apple.com/app/idXXXXXX";
+      }, 3000);
     }
   </script>
 </body>
