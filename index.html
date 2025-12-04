@@ -5,51 +5,74 @@
   <title>Open Ranteloo App</title>
 </head>
 <body>
+  <p id="status">Opening app...</p>
+  
   <script>
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
-    
+    const appLink = `ranteloo://postdetails/${id}`;
     const iosStore = "https://apps.apple.com/app/idXXXXXX";
     const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
     
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isAndroid = /Android/i.test(navigator.userAgent);
     
     let fallbackTimeout;
-    let didHideOrBlur = false;
+    let appOpened = false;
+    const startTime = Date.now();
 
-    function clearFallback() {
-      didHideOrBlur = true;
+    function cancelFallback() {
+      appOpened = true;
       clearTimeout(fallbackTimeout);
+      console.log("App detected as opened - fallback cancelled");
+    }
+
+    function goToStore() {
+      if (appOpened) return;
+      
+      // Extra check: if significant time passed, user likely interacted with app
+      const elapsed = Date.now() - startTime;
+      if (elapsed > 4000) {
+        console.log("Long delay detected - assuming app opened");
+        return;
+      }
+      
+      document.getElementById("status").textContent = "App not found. Redirecting to store...";
+      window.location.href = isIOS ? iosStore : androidStore;
     }
 
     function openApp() {
-      if (isAndroid) {
-        // Use Android Intent URL - OS handles fallback natively
-        const intentUrl = `intent://postdetails/${id}#Intent;scheme=ranteloo;package=com.bidyava.solutions;S.browser_fallback_url=${encodeURIComponent(androidStore)};end`;
-        window.location.href = intentUrl;
-      } else if (isIOS) {
-        // iOS: Use custom scheme with JS fallback
-        window.location.href = `ranteloo://postdetails/${id}`;
-        
-        fallbackTimeout = setTimeout(() => {
-          if (!didHideOrBlur) {
-            window.location.href = iosStore;
-          }
-        }, 2500);
-      } else {
-        // Desktop or unknown - just show store link or message
-        window.location.href = androidStore;
-      }
+      // Create hidden iframe to try opening (works better on some browsers)
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.src = appLink;
+      document.body.appendChild(iframe);
+
+      // Also try direct location change
+      setTimeout(() => {
+        window.location.href = appLink;
+      }, 100);
+
+      // Fallback to store
+      fallbackTimeout = setTimeout(goToStore, 2500);
     }
 
-    // Multiple events to catch app opening
+    // Listen for ANY sign that user left the page
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) clearFallback();
+      if (document.hidden) cancelFallback();
     });
     
-    window.addEventListener("pagehide", clearFallback);
-    window.addEventListener("blur", clearFallback);
+    window.addEventListener("pagehide", cancelFallback);
+    window.addEventListener("blur", cancelFallback);
+    
+    // When user returns to page after app didn't open
+    window.addEventListener("focus", () => {
+      // If we're back and app didn't open, go to store
+      // But only if enough time has passed
+      const elapsed = Date.now() - startTime;
+      if (!appOpened && elapsed > 3000 && elapsed < 10000) {
+        goToStore();
+      }
+    });
 
     openApp();
   </script>
