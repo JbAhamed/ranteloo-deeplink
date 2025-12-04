@@ -5,53 +5,50 @@
   <title>Open Ranteloo App</title>
 </head>
 <body>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
-    
-    const iosStore = "https://apps.apple.com/app/idXXXXXX";
-    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
-    
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("id");
+
+  const appLink = `ranteloo://postdetails/${id}`;
+  const iosStore = "https://apps.apple.com/app/idXXXXXX";
+  const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
+
+  let fallbackTriggered = false;
+  let timeout;
+
+  function goToStore() {
+    if (fallbackTriggered) return;
+    fallbackTriggered = true;
+
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    
-    let fallbackTimeout;
-    let didHideOrBlur = false;
+    window.location.href = isIOS ? iosStore : androidStore;
+  }
 
-    function clearFallback() {
-      didHideOrBlur = true;
-      clearTimeout(fallbackTimeout);
-    }
+  function openApp() {
+    const now = Date.now();
 
-    function openApp() {
-      if (isAndroid) {
-        // Use Android Intent URL - OS handles fallback natively
-        const intentUrl = `intent://postdetails/${id}#Intent;scheme=ranteloo;package=com.bidyava.solutions;S.browser_fallback_url=${encodeURIComponent(androidStore)};end`;
-        window.location.href = intentUrl;
-      } else if (isIOS) {
-        // iOS: Use custom scheme with JS fallback
-        window.location.href = `ranteloo://postdetails/${id}`;
-        
-        fallbackTimeout = setTimeout(() => {
-          if (!didHideOrBlur) {
-            window.location.href = iosStore;
-          }
-        }, 2500);
-      } else {
-        // Desktop or unknown - just show store link or message
-        window.location.href = androidStore;
+    window.location.href = appLink;
+
+    // Start fallback timer
+    timeout = setTimeout(() => {
+      // If user is still on the page → app did NOT open
+      if (Date.now() - now > 3500) {
+        goToStore();
       }
-    }
+    }, 3000);
+  }
 
-    // Multiple events to catch app opening
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) clearFallback();
-    });
-    
-    window.addEventListener("pagehide", clearFallback);
-    window.addEventListener("blur", clearFallback);
+  // If app actually opens → page becomes hidden OR blurred → cancel fallback
+  const cancelFallback = () => {
+    clearTimeout(timeout);
+    fallbackTriggered = true;
+  };
 
-    openApp();
-  </script>
+  document.addEventListener("visibilitychange", cancelFallback);
+  window.addEventListener("blur", cancelFallback);
+  window.addEventListener("pagehide", cancelFallback);
+
+  openApp();
+</script>
 </body>
 </html>
