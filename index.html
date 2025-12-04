@@ -23,7 +23,7 @@
       fallbackTimeout = setTimeout(() => {
         const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         window.location.href = isIOS ? iosStore : androidStore;
-      }, 1500);
+      }, 5000);
     }
 
     // If page becomes hidden → app opened → CANCEL fallback
