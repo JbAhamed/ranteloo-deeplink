@@ -1,53 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Open Ranteloo App</title>
+  <meta charset="UTF-8" />
+  <title>Open Ranteloo App</title>
 </head>
 <body>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    
+    const iosStore = "https://apps.apple.com/app/idXXXXXX";
+    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
+    
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    
+    let fallbackTimeout;
+    let didHideOrBlur = false;
 
-    const appLink = `ranteloo://postdetails/${id}`;
-    // NOTE: Ensure you replace XXXXXX with the actual iOS App ID
-    const iosStore = "https://apps.apple.com/app/idXXXXXX"; 
-    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
+    function clearFallback() {
+      didHideOrBlur = true;
+      clearTimeout(fallbackTimeout);
+    }
 
-    // **Significantly reduced timeout for faster, less-likely-to-fire-after-app-open fallback**
-    const FALLBACK_DELAY = 500; // 500 milliseconds (0.5 seconds)
+    function openApp() {
+      if (isAndroid) {
+        // Use Android Intent URL - OS handles fallback natively
+        const intentUrl = `intent://postdetails/${id}#Intent;scheme=ranteloo;package=com.bidyava.solutions;S.browser_fallback_url=${encodeURIComponent(androidStore)};end`;
+        window.location.href = intentUrl;
+      } else if (isIOS) {
+        // iOS: Use custom scheme with JS fallback
+        window.location.href = `ranteloo://postdetails/${id}`;
+        
+        fallbackTimeout = setTimeout(() => {
+          if (!didHideOrBlur) {
+            window.location.href = iosStore;
+          }
+        }, 2500);
+      } else {
+        // Desktop or unknown - just show store link or message
+        window.location.href = androidStore;
+      }
+    }
 
-    let fallbackTimeout;
+    // Multiple events to catch app opening
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) clearFallback();
+    });
+    
+    window.addEventListener("pagehide", clearFallback);
+    window.addEventListener("blur", clearFallback);
 
-    function openApp() {
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      
-      // 1. Try opening the app
-      window.location.href = appLink;
-
-      // 2. Set the fallback timer
-      fallbackTimeout = setTimeout(() => {
-        // Check if the page is still visible before navigating
-        if (document.hidden) {
-          // If hidden, assume the app opened and user switched away. 
-          // Don't redirect the now background page.
-          return; 
-        }
-        
-        // If the page is still visible after 500ms, the app likely didn't open.
-        window.location.href = isIOS ? iosStore : androidStore;
-      }, FALLBACK_DELAY);
-    }
-
-    // 3. The visibilitychange listener remains crucial for devices 
-    // where the app launch takes longer than FALLBACK_DELAY.
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        clearTimeout(fallbackTimeout);
-      }
-    });
-
-    openApp();
-  </script>
+    openApp();
+  </script>
 </body>
 </html>
