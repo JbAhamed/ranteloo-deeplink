@@ -5,76 +5,26 @@
   <title>Open Ranteloo App</title>
 </head>
 <body>
-  <p id="status">Opening app...</p>
-  
   <script>
+    // get id from URL
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
+
+    // deep link inside your app
     const appLink = `ranteloo://postdetails/${id}`;
-    const iosStore = "https://apps.apple.com/app/idXXXXXX";
-    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions";
-    
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    
-    let fallbackTimeout;
-    let appOpened = false;
-    const startTime = Date.now();
 
-    function cancelFallback() {
-      appOpened = true;
-      clearTimeout(fallbackTimeout);
-      console.log("App detected as opened - fallback cancelled");
-    }
+    // app store fallback links
+    const iosStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions&hl=en&gl=US";
+    const androidStore = "https://play.google.com/store/apps/details?id=com.bidyava.solutions&hl=en&gl=US";
 
-    function goToStore() {
-      if (appOpened) return;
-      
-      // Extra check: if significant time passed, user likely interacted with app
-      const elapsed = Date.now() - startTime;
-      if (elapsed > 4000) {
-        console.log("Long delay detected - assuming app opened");
-        return;
-      }
-      
-      document.getElementById("status").textContent = "App not found. Redirecting to store...";
+    // try opening the app
+    window.location = appLink;
+
+    // fallback to stores
+    setTimeout(() => {
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       window.location.href = isIOS ? iosStore : androidStore;
-    }
-
-    function openApp() {
-      // Create hidden iframe to try opening (works better on some browsers)
-      const iframe = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.src = appLink;
-      document.body.appendChild(iframe);
-
-      // Also try direct location change
-      setTimeout(() => {
-        window.location.href = appLink;
-      }, 100);
-
-      // Fallback to store
-      fallbackTimeout = setTimeout(goToStore, 2500);
-    }
-
-    // Listen for ANY sign that user left the page
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) cancelFallback();
-    });
-    
-    window.addEventListener("pagehide", cancelFallback);
-    window.addEventListener("blur", cancelFallback);
-    
-    // When user returns to page after app didn't open
-    window.addEventListener("focus", () => {
-      // If we're back and app didn't open, go to store
-      // But only if enough time has passed
-      const elapsed = Date.now() - startTime;
-      if (!appOpened && elapsed > 3000 && elapsed < 10000) {
-        goToStore();
-      }
-    });
-
-    openApp();
+    }, 1200);
   </script>
 </body>
 </html>
